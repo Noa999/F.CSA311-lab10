@@ -1,56 +1,59 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import './Quiz.css'
-import QuizQuestion from '../core/QuizQuestion';
-
-interface QuizState {
-  questions: QuizQuestion[]
-  currentQuestionIndex: number
-  selectedAnswer: string | null
-  score: number
-}
+import QuizCore from '../core/QuizCore'
 
 const Quiz: React.FC = () => {
-  const initialQuestions: QuizQuestion[] = [
-    {
-      question: 'What is the capital of France?',
-      options: ['London', 'Berlin', 'Paris', 'Madrid'],
-      correctAnswer: 'Paris',
-    },
-  ];
-  const [state, setState] = useState<QuizState>({
-    questions: initialQuestions,
-    currentQuestionIndex: 0,  // Initialize the current question index.
-    selectedAnswer: null,  // Initialize the selected answer.
-    score: 0,  // Initialize the score.
-  });
+  // Task 1: QuizCore ашиглан core-GUI тусгаарлалт
+  const quizCore = useRef(new QuizCore());
+  const core = quizCore.current;
+
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [quizFinished, setQuizFinished] = useState(false);
+  const [, forceUpdate] = useState(0);
+
+  const currentQuestion = core.getCurrentQuestion();
 
   const handleOptionSelect = (option: string): void => {
-    setState((prevState) => ({ ...prevState, selectedAnswer: option }));
-  }
+    setSelectedAnswer(option);
+  };
 
-
+  // Task 3: Next товч дарахад дараагийн асуулт руу шилжих
   const handleButtonClick = (): void => {
-    // Task3: Implement the logic for button click, such as moving to the next question.
-  } 
+    if (selectedAnswer === null) return;
 
-  const { questions, currentQuestionIndex, selectedAnswer, score } = state;
-  const currentQuestion = questions[currentQuestionIndex];
+    core.answerQuestion(selectedAnswer);
 
-  if (!currentQuestion) {
+    if (core.hasNextQuestion()) {
+      core.nextQuestion();
+      setSelectedAnswer(null);
+      forceUpdate(n => n + 1);
+    } else {
+      setQuizFinished(true);
+    }
+  };
+
+  // Task 3: Бүх асуулт дууссаны дараа оноог харуулах
+  if (quizFinished) {
+    const score = core.getScore();
+    const total = core.getTotalQuestions();
     return (
       <div>
         <h2>Quiz Completed</h2>
-        <p>Final Score: {score} out of {questions.length}</p>
+        <p>Final Score: {score} out of {total}</p>
+        <button onClick={() => window.location.reload()}>Restart</button>
       </div>
     );
   }
+
+  if (!currentQuestion) return null;
 
   return (
     <div>
       <h2>Quiz Question:</h2>
       <p>{currentQuestion.question}</p>
-    
+
       <h3>Answer Options:</h3>
+      {/* Task 2: Сонгосон хариултыг тодруулах */}
       <ul>
         {currentQuestion.options.map((option) => (
           <li
@@ -66,7 +69,9 @@ const Quiz: React.FC = () => {
       <h3>Selected Answer:</h3>
       <p>{selectedAnswer ?? 'No answer selected'}</p>
 
-      <button onClick={handleButtonClick}>Next Question</button>
+      <button onClick={handleButtonClick}>
+        {core.hasNextQuestion() ? 'Next Question' : 'Submit'}
+      </button>
     </div>
   );
 };
